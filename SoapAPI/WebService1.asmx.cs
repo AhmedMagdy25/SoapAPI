@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Web.Services;
 
 namespace SoapAPI
@@ -17,65 +15,90 @@ namespace SoapAPI
     // [System.Web.Script.Services.ScriptService]
     public class WebService1 : System.Web.Services.WebService
     {
+        private string connectionString = "server=127.0.0.1;uid=root;pwd=amP@ssw0rd;database=data";
 
         [WebMethod]
-        public List<string> getProductByName(string name)
+        public List<string[]> GetProductsData()
         {
-
-            List<string> product = new List<string>();
-            string connectionString = "server=127.0.0.1;uid=root;pwd=amP@ssw0rd;database=data";
+            List<string[]> products = new List<string[]>();
             using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
-                connection.Open();
-                MySqlCommand command = new MySqlCommand("SELECT id, details, rate, price " +
-                    "FROM data.products WHERE name = \""+name+"\"" , connection);
-                MySqlDataReader reader = command.ExecuteReader();
-                while (reader.Read())
+                try
                 {
-                    string id = "id:" + reader["id"].ToString();
-                    string details = "details: " + reader["details"].ToString();
-                    string rate = "rate: " + reader["rate"].ToString();
-                    string price = "price: " + reader["price"].ToString();
+                    connection.Open();
+                    MySqlCommand command = new MySqlCommand("SELECT * " +
+                        "FROM data.products", connection);
+                    MySqlDataReader reader = command.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        string id = "id: " + reader["id"].ToString();
+                        string name = "name:" + reader["name"].ToString();
+                        string details = "details: " + reader["details"].ToString();
+                        string rate = "rate: " + reader["rate"].ToString();
+                        string price = "price: " + reader["price"].ToString();
+                        string type = "type: " + reader["type"].ToString();
 
-                    product.Add(id);
-                    product.Add(details);
-                    product.Add(rate);
-                    product.Add(price);
+                        string[] product = {id, name, details, rate, price, type};
 
+                        products.Add(product);
+
+                    }
+                    connection.Close();
+                    return products;
+                }catch(Exception e)
+                {
+                    List<string[]> err = new List<string[]>
+                    {
+                        new string[]{ "error: " + e.ToString() }
+                    };
+                    return err;
                 }
-                connection.Close();
-                return product;
             }
         }
 
         [WebMethod]
-        public List<string> GetProductsData()
+        public string AddProduct(string name, string details, string rate, double price, string type)
         {
-            List<string> products = new List<string>();
-            string connectionString = "server=127.0.0.1;uid=root;pwd=amP@ssw0rd;database=data";
             using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
-                connection.Open();
-                MySqlCommand command = new MySqlCommand("SELECT id, name, details, rate, price " +
-                    "FROM data.products", connection);
-                MySqlDataReader reader = command.ExecuteReader();
-                while (reader.Read())
+                try
                 {
-                    string id =  "id: " + reader["id"].ToString();
-                    string name = "name:" + reader["name"].ToString();
-                    string details = "details: " + reader["details"].ToString();
-                    string rate = "rate: " + reader["rate"].ToString();
-                    string price = "price: " + reader["price"].ToString();
-
-                    products.Add(id);
-                    products.Add(name);
-                    products.Add(details);
-                    products.Add(rate);
-                    products.Add(price);
+                    connection.Open();
+                    MySqlCommand command = new MySqlCommand("INSERT INTO data.products "
+                                               + "VALUES(\"" + new Random().Next() + "\", \"" + name + "\", \"" + details + "\", \""
+                                               + rate + "\", \"" + price + "\", \"" + type + "\");"
+                                               , connection);
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                    return "the itme is added successfully";
 
                 }
-                connection.Close();
-                return products;
+                catch (Exception e)
+                {
+                    return "error: " + e.ToString();
+                }
+            }
+        }
+
+        [WebMethod]
+        public string DeleteProductByID(string id)
+        {
+            using (MySqlConnection connection = new MySqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    MySqlCommand command = new MySqlCommand("DELETE FROM data.products WHERE id = \"" + id + "\";", connection);
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                    return "the item is deleted successfully";
+
+                }
+                catch (Exception e)
+                {
+                    return "error: " + e.ToString();
+                }
+
             }
         }
     }
